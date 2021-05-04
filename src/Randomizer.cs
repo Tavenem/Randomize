@@ -604,15 +604,7 @@ namespace Tavenem.Randomize
         /// <typeparamref name="T"/> if <paramref name="list"/> is <see langword="null"/> or
         /// contains no elements.
         /// </returns>
-        /// <remarks>
-        /// Note that nullable reference type nullability checking is disabled for the return result
-        /// of this method when it is the default type, in order to avoid narrowing the allowable
-        /// types to either classes or value types, or splitting the method into differently-named
-        /// alternatives for both. As a result, the nullability of the result of this method is not
-        /// guaranteed, even though nullable reference type nullability checks are normally enforced
-        /// by this library.
-        /// </remarks>
-        public T Next<T>(IList<T>? list) => (list?.Count ?? 0) == 0 ? default! : list![Next(list.Count)];
+        public T? Next<T>(IList<T>? list) => (list?.Count ?? 0) == 0 ? default : list![Next(list.Count)];
 
         /// <summary>
         /// <para>
@@ -643,17 +635,9 @@ namespace Tavenem.Randomize
         /// <typeparamref name="T"/> if <paramref name="list"/> is <see langword="null"/> or
         /// contains no elements.
         /// </returns>
-        /// <remarks>
-        /// Note that nullable reference type nullability checking is disabled for the return result
-        /// of this method when it is the default type, in order to avoid narrowing the allowable
-        /// types to either classes or value types, or splitting the method into differently-named
-        /// alternatives for both. As a result, the nullability of the result of this method is not
-        /// guaranteed, even though nullable reference type nullability checks are normally enforced
-        /// by this library.
-        /// </remarks>
-        public T Next<T>(IList<T>? list, Func<T, double> weightFunction)
+        public T? Next<T>(IList<T>? list, Func<T, double> weightFunction)
             => (list?.Count ?? 0) == 0
-                ? default!
+                ? default
                 : list![CategoricalDistributionSample(list.Select(weightFunction).ToList())];
 
         /// <summary>
@@ -684,17 +668,9 @@ namespace Tavenem.Randomize
         /// <typeparamref name="T"/> if <paramref name="enumerable"/> is <see langword="null"/> or
         /// contains no elements.
         /// </returns>
-        /// <remarks>
-        /// Note that nullable reference type nullability checking is disabled for the return result
-        /// of this method when it is the default type, in order to avoid narrowing the allowable
-        /// types to either classes or value types, or splitting the method into differently-named
-        /// alternatives for both. As a result, the nullability of the result of this method is not
-        /// guaranteed, even though nullable reference type nullability checks are normally enforced
-        /// by this library.
-        /// </remarks>
-        public T Next<T>(IEnumerable<T>? enumerable, double selectionChance)
+        public T? Next<T>(IEnumerable<T>? enumerable, double selectionChance)
         {
-            T current = default!;
+            T? current = default;
             if (enumerable != null)
             {
                 foreach (var item in enumerable)
