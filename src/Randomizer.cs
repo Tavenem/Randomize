@@ -1,5 +1,4 @@
-﻿using Tavenem.Mathematics;
-using Tavenem.Randomize.Distributions;
+﻿using Tavenem.Randomize.Distributions;
 using Tavenem.Randomize.Generators;
 
 namespace Tavenem.Randomize;
@@ -596,8 +595,10 @@ public class Randomizer
     /// becomes the inclusive maximum bound).
     /// </para>
     /// <para>
-    /// If the value is <see cref="IFloatingPoint{TSelf}.NaN"/> the result will also be <see
-    /// cref="IFloatingPoint{TSelf}.NaN"/>.
+    /// If the value satisfies <see cref="INumberBase{TSelf}.IsNaN(TSelf)"/> the result will be the
+    /// result of 0/0 (normally <see cref="IFloatingPointIeee754{TSelf}.NaN"/>, but this might
+    /// result in an exception if <typeparamref name="T"/> does not implement <see
+    /// cref="IFloatingPointIeee754{TSelf}"/>).
     /// </para>
     /// <para>
     /// If the value is positive or negative infinity, it will always be returned as the result.
@@ -616,8 +617,8 @@ public class Randomizer
     /// The inclusive minimum bound of the random number to be generated.
     /// </para>
     /// <para>
-    /// If the value is <see cref="IFloatingPoint{TSelf}.NaN"/> the result will also be <see
-    /// cref="IFloatingPoint{TSelf}.NaN"/>.
+    /// If the value satisfies <see cref="INumberBase{TSelf}.IsNaN(TSelf)"/> the result will be <see
+    /// cref="IFloatingPointIeee754{TSelf}.NaN"/>.
     /// </para>
     /// <para>
     /// If the value is positive or negative infinity, it will always be returned as the result
@@ -630,8 +631,8 @@ public class Randomizer
     /// The exclusive maximum bound of the random number to be generated.
     /// </para>
     /// <para>
-    /// If the value is <see cref="IFloatingPoint{TSelf}.NaN"/> the result will also be <see
-    /// cref="IFloatingPoint{TSelf}.NaN"/>.
+    /// If the value satisfies <see cref="INumberBase{TSelf}.IsNaN(TSelf)"/> the result will be <see
+    /// cref="IFloatingPointIeee754{TSelf}.NaN"/>.
     /// </para>
     /// <para>
     /// If the value is positive or negative infinity, it will always be returned as the result
@@ -645,7 +646,7 @@ public class Randomizer
     /// If <paramref name="minValue"/> is greater than <paramref name="maxValue"/>, the result
     /// is determined by <see cref="RandomizeOptions.InvalidFloatingRangeResult"/>.
     /// </remarks>
-    public T Next<T>(T minValue, T maxValue) where T : IFloatingPoint<T> => _generator.Next(minValue, maxValue);
+    public T Next<T>(T minValue, T maxValue) where T : IFloatingPointIeee754<T> => _generator.Next(minValue, maxValue);
 
     /// <summary>
     /// <para>
@@ -1156,7 +1157,7 @@ public class Randomizer
     /// interdependence between components of a quaternion is loose enough that this effect is
     /// considered to be inconsequential.
     /// </remarks>
-    public Quaternion<T> NextQuaternion<T>() where T : IFloatingPoint<T>
+    public Quaternion<T> NextQuaternion<T>() where T : IFloatingPointIeee754<T>
         => Quaternion<T>.Normalize(new Quaternion<T>(Next<T>(), Next<T>(), Next<T>(), Next<T>()));
 
     /// <summary>
@@ -1252,8 +1253,8 @@ public class Randomizer
     /// Values below zero will be treated as zero.
     /// </para>
     /// <para>
-    /// <see cref="IFloatingPoint{TSelf}.PositiveInfinity"/> will always result in an infinite-length
-    /// vector.
+    /// <see cref="IFloatingPointIeee754{TSelf}.PositiveInfinity"/> will always result in an
+    /// infinite-length vector.
     /// </para>
     /// </param>
     /// <returns>
@@ -1266,8 +1267,8 @@ public class Randomizer
     /// unintentionally generating lengths in a quasi-Gaussian distribution, as would occur if
     /// the vector components were generated independently.
     /// </remarks>
-    public Vector3<T> NextVector3<T>(T maxLength) where T : IFloatingPoint<T>
-        => Vector3 < T > .Transform(Vector3<T>.UnitX, NextQuaternion<T>()) * Next(maxLength);
+    public Vector3<T> NextVector3<T>(T maxLength) where T : IFloatingPointIeee754<T>
+        => Vector3<T>.Transform(Vector3<T>.UnitX, NextQuaternion<T>()) * Next(maxLength);
 
     /// <summary>
     /// Gets a randomly oriented vector whose length is between <paramref name="minLength"/> and
@@ -1294,7 +1295,7 @@ public class Randomizer
     /// is determined by <see cref="RandomizeOptions.InvalidIntegralRangeResult"/>.
     /// </para>
     /// </remarks>
-    public Vector3<T> NextVector3<T>(T minLength, T maxLength) where T : IFloatingPoint<T>
+    public Vector3<T> NextVector3<T>(T minLength, T maxLength) where T : IFloatingPointIeee754<T>
         => Vector3<T>.Transform(Vector3<T>.UnitX, NextQuaternion<T>()) * Next(minLength, maxLength);
 
     /// <summary>

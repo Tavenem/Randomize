@@ -99,8 +99,8 @@ public sealed class MersenneTwister : IGenerator
         y ^= (y << 7) & 0x9d2c5680U;
         y ^= (y << 15) & 0xefc60000U;
 
-        return T.Create((int)((y ^ (y >> 18)) >> 1))
-            * (T.One / (T.Create(int.MaxValue) + T.One));
+        return T.CreateChecked((int)((y ^ (y >> 18)) >> 1))
+            * (T.One / (T.CreateChecked(int.MaxValue) + T.One));
     }
 
     /// <summary>

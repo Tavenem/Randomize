@@ -77,8 +77,10 @@ public class RandomNumberGenerator
     /// becomes the inclusive maximum bound).
     /// </para>
     /// <para>
-    /// If the value is <see cref="IFloatingPoint{TSelf}.NaN"/> the result will also be <see
-    /// cref="IFloatingPoint{TSelf}.NaN"/>.
+    /// If the value satisfies <see cref="INumberBase{TSelf}.IsNaN(TSelf)"/> the result will be the
+    /// result of 0/0 (normally <see cref="IFloatingPointIeee754{TSelf}.NaN"/>, but this might
+    /// result in an exception if <typeparamref name="T"/> does not implement <see
+    /// cref="IFloatingPointIeee754{TSelf}"/>).
     /// </para>
     /// <para>
     /// If the value is positive or negative infinity, it will always be returned as the result.
@@ -91,7 +93,7 @@ public class RandomNumberGenerator
     {
         if (T.IsNaN(maxValue))
         {
-            return T.NaN;
+            return T.Zero / T.Zero;
         }
         if (T.IsInfinity(maxValue))
         {
@@ -102,21 +104,21 @@ public class RandomNumberGenerator
     }
 
     /// <summary>
-    /// Gets a random floating-point number greater than or equal to <paramref name="minValue"/>
-    /// and less than or equal to <paramref name="maxValue"/>.
+    /// Gets a random floating-point number greater than or equal to <paramref name="minValue"/> and
+    /// less than or equal to <paramref name="maxValue"/>.
     /// </summary>
     /// <param name="minValue">
     /// <para>
     /// The inclusive minimum bound of the random number to be generated.
     /// </para>
     /// <para>
-    /// If the value is <see cref="IFloatingPoint{TSelf}.NaN"/> the result will also be <see
-    /// cref="IFloatingPoint{TSelf}.NaN"/>.
+    /// If the value satisfies <see cref="INumberBase{TSelf}.IsNaN(TSelf)"/> the result will be <see
+    /// cref="IFloatingPointIeee754{TSelf}.NaN"/>.
     /// </para>
     /// <para>
     /// If the value is positive or negative infinity, it will always be returned as the result
-    /// unless <paramref name="maxValue"/> is the opposing infinity (in which case either
-    /// positive or negative infinity will be returned randomly).
+    /// unless <paramref name="maxValue"/> is the opposing infinity (in which case either positive
+    /// or negative infinity will be returned randomly).
     /// </para>
     /// </param>
     /// <param name="maxValue">
@@ -124,22 +126,22 @@ public class RandomNumberGenerator
     /// The exclusive maximum bound of the random number to be generated.
     /// </para>
     /// <para>
-    /// If the value is <see cref="IFloatingPoint{TSelf}.NaN"/> the result will also be <see
-    /// cref="IFloatingPoint{TSelf}.NaN"/>.
+    /// If the value is satisfies <see cref="INumberBase{TSelf}.IsNaN(TSelf)"/> the result will be
+    /// <see cref="IFloatingPointIeee754{TSelf}.NaN"/>.
     /// </para>
     /// <para>
     /// If the value is positive or negative infinity, it will always be returned as the result
-    /// unless <paramref name="minValue"/> is the opposing infinity (in which case either
-    /// positive or negative infinity will be returned randomly).
+    /// unless <paramref name="minValue"/> is the opposing infinity (in which case either positive
+    /// or negative infinity will be returned randomly).
     /// </para>
     /// </param>
     /// <returns>A random, nonnegative floating-point number greater than or equal to <paramref
     /// name="minValue"/> and less than <paramref name="maxValue"/>.</returns>
     /// <remarks>
-    /// If <paramref name="minValue"/> is greater than <paramref name="maxValue"/>, the result
-    /// is determined by <see cref="RandomizeOptions.InvalidFloatingRangeResult"/>.
+    /// If <paramref name="minValue"/> is greater than <paramref name="maxValue"/>, the result is
+    /// determined by <see cref="RandomizeOptions.InvalidFloatingRangeResult"/>.
     /// </remarks>
-    public T Next<T>(T minValue, T maxValue) where T : IFloatingPoint<T>
+    public T Next<T>(T minValue, T maxValue) where T : IFloatingPointIeee754<T>
     {
         if (T.IsNaN(minValue)
             || T.IsNaN(maxValue))
@@ -157,9 +159,7 @@ public class RandomNumberGenerator
                 case InvalidFloatingRangeResultOption.MaxBound:
                     return maxValue;
                 case InvalidFloatingRangeResultOption.Swap:
-                    var tmp = maxValue;
-                    maxValue = minValue;
-                    minValue = tmp;
+                    (minValue, maxValue) = (maxValue, minValue);
                     break;
                 case InvalidFloatingRangeResultOption.Exception:
                     throw new ArgumentOutOfRangeException(nameof(minValue), ErrorMessages.MinAboveMax);
@@ -238,9 +238,7 @@ public class RandomNumberGenerator
                 case InvalidIntegralRangeResultOption.MaxBound:
                     return maxValue;
                 case InvalidIntegralRangeResultOption.Swap:
-                    var tmp = maxValue;
-                    maxValue = minValue;
-                    minValue = tmp;
+                    (minValue, maxValue) = (maxValue, minValue);
                     break;
                 case InvalidIntegralRangeResultOption.Exception:
                     throw new ArgumentOutOfRangeException(nameof(minValue), ErrorMessages.MinAboveMax);
@@ -380,9 +378,7 @@ public class RandomNumberGenerator
                 case InvalidIntegralRangeResultOption.MaxBound:
                     return maxValue;
                 case InvalidIntegralRangeResultOption.Swap:
-                    var tmp = maxValue;
-                    maxValue = minValue;
-                    minValue = tmp;
+                    (minValue, maxValue) = (maxValue, minValue);
                     break;
                 case InvalidIntegralRangeResultOption.Exception:
                     throw new ArgumentOutOfRangeException(nameof(minValue), ErrorMessages.MinAboveMax);
@@ -489,9 +485,7 @@ public class RandomNumberGenerator
                 case InvalidFloatingRangeResultOption.MaxBound:
                     return maxValue;
                 case InvalidFloatingRangeResultOption.Swap:
-                    var tmp = maxValue;
-                    maxValue = minValue;
-                    minValue = tmp;
+                    (minValue, maxValue) = (maxValue, minValue);
                     break;
                 case InvalidFloatingRangeResultOption.Exception:
                     throw new ArgumentOutOfRangeException(nameof(minValue), ErrorMessages.MinAboveMax);
@@ -645,9 +639,7 @@ public class RandomNumberGenerator
                 case InvalidIntegralRangeResultOption.MaxBound:
                     return maxValue;
                 case InvalidIntegralRangeResultOption.Swap:
-                    var tmp = maxValue;
-                    maxValue = minValue;
-                    minValue = tmp;
+                    (minValue, maxValue) = (maxValue, minValue);
                     break;
                 case InvalidIntegralRangeResultOption.Exception:
                     throw new ArgumentOutOfRangeException(nameof(minValue), ErrorMessages.MinAboveMax);

@@ -1,1 +1,2 @@
-﻿global using Tavenem.Mathematics;
+﻿global using System.Numerics;
+global using Tavenem.Mathematics;

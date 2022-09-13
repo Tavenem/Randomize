@@ -621,8 +621,10 @@ public class Rehydrator
     /// becomes the inclusive maximum bound).
     /// </para>
     /// <para>
-    /// If the value is <see cref="IFloatingPoint{TSelf}.NaN"/> the result will also be <see
-    /// cref="IFloatingPoint{TSelf}.NaN"/>.
+    /// If the value satisfies <see cref="INumberBase{TSelf}.IsNaN(TSelf)"/> the result will be the
+    /// result of 0/0 (normally <see cref="IFloatingPointIeee754{TSelf}.NaN"/>, but this might
+    /// result in an exception if <typeparamref name="T"/> does not implement <see
+    /// cref="IFloatingPointIeee754{TSelf}"/>).
     /// </para>
     /// <para>
     /// If the value is positive or negative infinity, it will always be returned as the result.
@@ -634,8 +636,8 @@ public class Rehydrator
         => SetIndex(index).Next<T>(maxValue);
 
     /// <summary>
-    /// Gets a random floating-point number greater than or equal to <paramref name="minValue"/>
-    /// and less than or equal to <paramref name="maxValue"/>.
+    /// Gets a random floating-point number greater than or equal to <paramref name="minValue"/> and
+    /// less than or equal to <paramref name="maxValue"/>.
     /// </summary>
     /// <param name="index">The 0-based index of the random value to retrieve.</param>
     /// <param name="minValue">
@@ -643,13 +645,13 @@ public class Rehydrator
     /// The inclusive minimum bound of the random number to be generated.
     /// </para>
     /// <para>
-    /// If the value is <see cref="IFloatingPoint{TSelf}.NaN"/> the result will also be <see
-    /// cref="IFloatingPoint{TSelf}.NaN"/>.
+    /// If the value satisfies <see cref="INumberBase{TSelf}.IsNaN(TSelf)"/> the result will be <see
+    /// cref="IFloatingPointIeee754{TSelf}.NaN"/>.
     /// </para>
     /// <para>
     /// If the value is positive or negative infinity, it will always be returned as the result
-    /// unless <paramref name="maxValue"/> is the opposing infinity (in which case either
-    /// positive or negative infinity will be returned randomly).
+    /// unless <paramref name="maxValue"/> is the opposing infinity (in which case either positive
+    /// or negative infinity will be returned randomly).
     /// </para>
     /// </param>
     /// <param name="maxValue">
@@ -657,22 +659,22 @@ public class Rehydrator
     /// The exclusive maximum bound of the random number to be generated.
     /// </para>
     /// <para>
-    /// If the value is <see cref="IFloatingPoint{TSelf}.NaN"/> the result will also be <see
-    /// cref="IFloatingPoint{TSelf}.NaN"/>.
+    /// If the value satisfies <see cref="INumberBase{TSelf}.IsNaN(TSelf)"/> the result will be <see
+    /// cref="IFloatingPointIeee754{TSelf}.NaN"/>.
     /// </para>
     /// <para>
     /// If the value is positive or negative infinity, it will always be returned as the result
-    /// unless <paramref name="minValue"/> is the opposing infinity (in which case either
-    /// positive or negative infinity will be returned randomly).
+    /// unless <paramref name="minValue"/> is the opposing infinity (in which case either positive
+    /// or negative infinity will be returned randomly).
     /// </para>
     /// </param>
     /// <returns>A random, nonnegative floating-point number greater than or equal to <paramref
     /// name="minValue"/> and less than <paramref name="maxValue"/>.</returns>
     /// <remarks>
-    /// If <paramref name="minValue"/> is greater than <paramref name="maxValue"/>, the result
-    /// is determined by <see cref="RandomizeOptions.InvalidFloatingRangeResult"/>.
+    /// If <paramref name="minValue"/> is greater than <paramref name="maxValue"/>, the result is
+    /// determined by <see cref="RandomizeOptions.InvalidFloatingRangeResult"/>.
     /// </remarks>
-    public T Next<T>(ulong index, T minValue, T maxValue) where T : IFloatingPoint<T>
+    public T Next<T>(ulong index, T minValue, T maxValue) where T : IFloatingPointIeee754<T>
         => SetIndex(index).Next<T>(minValue, maxValue);
 
     /// <summary>
@@ -1080,7 +1082,7 @@ public class Rehydrator
     /// interdependence between components of a quaternion is loose enough that this effect is
     /// considered to be inconsequential.
     /// </remarks>
-    public Quaternion<T> NextQuaternion<T>(ulong index) where T : IFloatingPoint<T>
+    public Quaternion<T> NextQuaternion<T>(ulong index) where T : IFloatingPointIeee754<T>
     {
         var randomizer = GetRandomizer(index);
         return Quaternion<T>.Normalize(new Quaternion<T>(
@@ -1186,8 +1188,8 @@ public class Rehydrator
     public uint NextUIntInclusive(ulong index, uint minValue, uint maxValue) => SetIndex(index).NextUIntInclusive(minValue, maxValue);
 
     /// <summary>
-    /// Gets a randomly oriented vector whose length is between 0 and <paramref
-    /// name="maxLength"/>, and whose components are floating-point numbers.
+    /// Gets a randomly oriented vector whose length is between 0 and <paramref name="maxLength"/>,
+    /// and whose components are floating-point numbers.
     /// </summary>
     /// <param name="index">The 0-based index of the random value to retrieve.</param>
     /// <param name="maxLength">
@@ -1198,20 +1200,21 @@ public class Rehydrator
     /// Values below zero will be treated as zero.
     /// </para>
     /// <para>
-    /// <see cref="IFloatingPoint{TSelf}.PositiveInfinity"/> will always result in an infinite-length vector.
+    /// <see cref="IFloatingPointIeee754{TSelf}.PositiveInfinity"/> will always result in an
+    /// infinite-length vector.
     /// </para>
     /// </param>
     /// <returns>
-    /// A randomly oriented vector whose length is between 0 and <paramref
-    /// name="maxLength"/>, and whose components are floating-point numbers.
+    /// A randomly oriented vector whose length is between 0 and <paramref name="maxLength"/>, and
+    /// whose components are floating-point numbers.
     /// </returns>
     /// <remarks>
-    /// A random rotation is generated with <see cref="Randomizer.NextQuaternion{T}()"/>,
-    /// then the vector is scaled randomly according to <paramref name="maxLength"/>, to avoid
-    /// unintentionally generating lengths in a quasi-Gaussian distribution, as would occur if
-    /// the vector components were generated independently.
+    /// A random rotation is generated with <see cref="Randomizer.NextQuaternion{T}()"/>, then the
+    /// vector is scaled randomly according to <paramref name="maxLength"/>, to avoid
+    /// unintentionally generating lengths in a quasi-Gaussian distribution, as would occur if the
+    /// vector components were generated independently.
     /// </remarks>
-    public Vector3<T> NextVector3<T>(ulong index, T maxLength) where T : IFloatingPoint<T>
+    public Vector3<T> NextVector3<T>(ulong index, T maxLength) where T : IFloatingPointIeee754<T>
     {
         var randomizer = GetRandomizer(index);
         return Vector3<T>.Transform(
@@ -1246,7 +1249,7 @@ public class Rehydrator
     /// is determined by <see cref="RandomizeOptions.InvalidIntegralRangeResult"/>.
     /// </para>
     /// </remarks>
-    public Vector3<T> NextVector3<T>(ulong index, T minLength, T maxLength) where T : IFloatingPoint<T>
+    public Vector3<T> NextVector3<T>(ulong index, T minLength, T maxLength) where T : IFloatingPointIeee754<T>
     {
         var randomizer = GetRandomizer(index);
         return Vector3<T>.Transform(

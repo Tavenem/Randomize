@@ -1,7 +1,7 @@
-﻿using Tavenem.Randomize.Distributions;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using System.Text.Json.Serialization;
+using Tavenem.Randomize.Distributions;
 
 namespace Tavenem.Randomize;
 
@@ -10,9 +10,9 @@ namespace Tavenem.Randomize;
 /// </summary>
 [JsonConverter(typeof(RandomParametersConverter))]
 public readonly struct RandomParameters :
-    IEqualityOperators<RandomParameters, RandomParameters>,
+    IEqualityOperators<RandomParameters, RandomParameters, bool>,
     ISpanFormattable,
-    ISpanParseable<RandomParameters>
+    ISpanParsable<RandomParameters>
 {
     /// <summary>
     /// Default parameters for a binomial distribution, in which the sample size is 1 and the
@@ -923,7 +923,7 @@ public readonly struct RandomParameters :
             parameters = new double[parameterLength];
             if (Parameters is null)
             {
-                if (!(other.Parameters is null))
+                if (other.Parameters is not null)
                 {
                     Array.Copy(other.Parameters, 0, parameters, 0, parameterLength);
                 }
@@ -1132,7 +1132,7 @@ public readonly struct RandomParameters :
         {
             return false;
         }
-        var slice = value.Slice(0, index);
+        var slice = value[..index];
         if (!Enum.TryParse(typeof(DistributionType), slice.ToString(), out var distTypeValue)
             || distTypeValue is not DistributionType distributionTypeValue)
         {
@@ -1260,7 +1260,7 @@ public readonly struct RandomParameters :
         {
             return false;
         }
-        var slice = value.Slice(0, index);
+        var slice = value[..index];
         if (!int.TryParse(slice, out var distributionTypeValue)
             || !Enum.IsDefined(typeof(DistributionType), distributionTypeValue))
         {
