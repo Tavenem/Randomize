@@ -158,9 +158,7 @@ public static class LogNormalDistribution
                         minimum = maximum;
                         break;
                     case InvalidFloatingRangeResultOption.Swap:
-                        var tmp = maximum;
-                        maximum = minimum;
-                        minimum = tmp;
+                        (minimum, maximum) = (maximum, minimum);
                         break;
                     case InvalidFloatingRangeResultOption.Exception:
                         throw new ArgumentOutOfRangeException(nameof(minimum), ErrorMessages.MinAboveMax);
