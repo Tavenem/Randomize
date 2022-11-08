@@ -42,25 +42,25 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pack
-        if: steps.tagged.outputs.tagged == 1
+        if: steps.nbgv.outputs.PublicRelease && steps.checkTag.outputs.exists != 'true'
         run: dotnet pack --include-symbols -p:SymbolPackageFormat=snupkg -p:PackageVersion=${{ steps.nbgv.outputs.Version }} --configuration Release --no-build --nologo --output .
         working-directory: ./src
 
       - name: Push to NuGet
-        if: steps.tagged.outputs.tagged == 1
+        if: steps.nbgv.outputs.PublicRelease && steps.checkTag.outputs.exists != 'true'
         run: dotnet nuget push *.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate
         working-directory: ./src
 
       - name: Git tag
-        if: steps.tagged.outputs.tagged == 1
+        if: steps.nbgv.outputs.PublicRelease && steps.checkTag.outputs.exists != 'true'
         run: git tag v${{ steps.nbgv.outputs.Version }}
 
       - name: Push tag
-        if: steps.tagged.outputs.tagged == 1
+        if: steps.nbgv.outputs.PublicRelease && steps.checkTag.outputs.exists != 'true'
         run: git push origin v${{ steps.nbgv.outputs.Version }}
 
       - name: Release
-        if: steps.tagged.outputs.tagged == 1
+        if: steps.nbgv.outputs.PublicRelease && steps.checkTag.outputs.exists != 'true'
         id: create_release
         uses: softprops/action-gh-release@v0.1.14
         env:
