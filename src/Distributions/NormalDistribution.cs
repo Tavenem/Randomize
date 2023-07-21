@@ -38,21 +38,21 @@ public static class NormalDistribution
             || double.IsNaN(sigma))
         {
             return new DistributionProperties(
-                    maximum: double.NaN,
-                    mean: double.NaN,
-                    median: double.NaN,
-                    minimum: double.NaN,
-                    mode: new[] { double.NaN },
-                    variance: double.NaN);
+                double.NaN,
+                double.NaN,
+                double.NaN,
+                double.NaN,
+                null,
+                double.NaN);
         }
         sigma = Math.Max(NumberValues.NearlyZeroDouble, sigma);
         return new DistributionProperties(
-                maximum: double.PositiveInfinity,
-                mean: mu,
-                median: mu,
-                minimum: double.NegativeInfinity,
-                mode: new[] { mu },
-                variance: sigma.Square());
+            double.PositiveInfinity,
+            mu,
+            mu,
+            double.NegativeInfinity,
+            new[] { mu },
+            sigma.Square());
     }
 
     /// <summary>

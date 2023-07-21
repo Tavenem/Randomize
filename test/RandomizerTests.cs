@@ -1,5 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Globalization;
+using System.Text.Json;
 using Tavenem.Mathematics;
 using Tavenem.Randomize.Distributions;
 
@@ -57,17 +58,50 @@ public class RandomizerTests
     [TestMethod]
     public void RandomParametersFormatTest()
     {
-        var value = RandomParameters.NewNormal(-0.25, null, new[] { 0, 1.0 / 3.0 }, 2);
+        var value = RandomParameters.NewNormal(
+            -0.25,
+            null,
+            0,
+            1.0 / 3.0,
+            2);
 
         var str = value.ToString();
-        Assert.AreEqual($"{DistributionType.Normal} distribution (-0.25;{CultureInfo.CurrentCulture.NumberFormat.PositiveInfinitySymbol}) [0.00;0.33] r:2", str);
+        Assert.AreEqual(
+            $"{DistributionType.Normal} distribution (-0.25;{CultureInfo.CurrentCulture.NumberFormat.PositiveInfinitySymbol}) [0.00;0.33] r:2",
+            str);
 
         str = value.ToString("r");
         Assert.AreEqual($"{(int)DistributionType.Normal}:-0.25;{NumberFormatInfo.InvariantInfo.PositiveInfinitySymbol}:0;0.33333333333333331:2", str);
         Assert.AreEqual(value, RandomParameters.ParseExact(str, "r"));
 
-        var json = System.Text.Json.JsonSerializer.Serialize(value);
+        var json = JsonSerializer.Serialize(value);
         Assert.AreEqual($"\"{str}\"", json);
-        Assert.AreEqual(value, System.Text.Json.JsonSerializer.Deserialize<RandomParameters>(json));
+        Assert.AreEqual(value, JsonSerializer.Deserialize<RandomParameters>(json));
+    }
+
+    [TestMethod]
+    public void RandomParametersSerializeTest()
+    {
+        var value = RandomParameters.NewNormal(
+            -0.25,
+            null,
+            0,
+            1.0 / 3.0,
+            2);
+
+        var json = JsonSerializer.Serialize(value);
+        Assert.AreEqual($"\"{(int)DistributionType.Normal}:-0.25;{NumberFormatInfo.InvariantInfo.PositiveInfinitySymbol}:0;0.33333333333333331:2\"", json);
+        var deserialized = JsonSerializer.Deserialize<RandomParameters>(json);
+        Assert.AreEqual(value, deserialized);
+        Assert.AreEqual(json, JsonSerializer.Serialize(deserialized));
+
+        json = JsonSerializer.Serialize(value, RandomizeSourceGenerationContext.Default.RandomParameters);
+        Console.WriteLine();
+        Console.WriteLine(json);
+        deserialized = JsonSerializer.Deserialize(json, RandomizeSourceGenerationContext.Default.RandomParameters);
+        Assert.AreEqual(value, deserialized);
+        Assert.AreEqual(
+            json,
+            JsonSerializer.Serialize(deserialized, RandomizeSourceGenerationContext.Default.RandomParameters));
     }
 }

@@ -35,15 +35,32 @@ public class RandomNumberGenerator
     }
 
     /// <summary>
+    /// Initializes a new instance of <see cref="RandomNumberGenerator"/> with a pseudo-random seed.
+    /// </summary>
+    public RandomNumberGenerator() => _generator = new MersenneTwister();
+
+    /// <summary>
     /// Initializes a new instance of <see cref="RandomNumberGenerator"/> with the given seed.
     /// </summary>
     /// <param name="seed">The initial seed.</param>
     public RandomNumberGenerator(uint seed) => _generator = new MersenneTwister(seed);
 
     /// <summary>
-    /// Initializes a new instance of <see cref="RandomNumberGenerator"/> with a pseudo-random seed.
+    /// Initializes a new instance of <see cref="RandomNumberGenerator"/>.
     /// </summary>
-    public RandomNumberGenerator() => _generator = new MersenneTwister();
+    /// <param name="generator">An instance of <see cref="IGenerator"/>.</param>
+    public RandomNumberGenerator(IGenerator generator) => _generator = generator;
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="RandomNumberGenerator"/> with the given seed.
+    /// </summary>
+    /// <param name="generator">An instance of <see cref="IGenerator"/>.</param>
+    /// <param name="seed">The initial seed.</param>
+    public RandomNumberGenerator(IGenerator generator, uint seed)
+    {
+        _generator = generator;
+        _generator.Reset(seed);
+    }
 
     /// <summary>
     /// Gets a random, nonnegative integer less than <see cref="int.MaxValue" />.

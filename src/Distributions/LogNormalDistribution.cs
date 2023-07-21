@@ -38,21 +38,21 @@ public static class LogNormalDistribution
             || double.IsNaN(sigma))
         {
             return new DistributionProperties(
-                    maximum: double.NaN,
-                    mean: double.NaN,
-                    median: double.NaN,
-                    minimum: double.NaN,
-                    mode: new[] { double.NaN },
-                    variance: double.NaN);
+                double.NaN,
+                double.NaN,
+                double.NaN,
+                double.NaN,
+                null,
+                double.NaN);
         }
         sigma = Math.Max(NumberValues.NearlyZeroDouble, sigma);
         return new DistributionProperties(
-                maximum: double.PositiveInfinity,
-                mean: Math.Exp(mu + (sigma.Square() / 2)),
-                median: Math.Exp(mu),
-                minimum: 0,
-                mode: new[] { Math.Exp(mu - sigma.Square()) },
-                variance: (Math.Exp(sigma.Square()) - 1) * Math.Exp((2 * mu) + sigma.Square()));
+            double.PositiveInfinity,
+            Math.Exp(mu + (sigma.Square() / 2)),
+            Math.Exp(mu),
+            0,
+            new[] { Math.Exp(mu - sigma.Square()) },
+            (Math.Exp(sigma.Square()) - 1) * Math.Exp((2 * mu) + sigma.Square()));
     }
 
     /// <summary>

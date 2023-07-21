@@ -7,6 +7,8 @@ namespace Tavenem.Randomize.Distributions;
 /// </summary>
 public static class ExponentialDistribution
 {
+    private static readonly double[] _Mode = new[] { 0.0 };
+
     /// <summary>
     /// Gets the properties of this distribution, including minimum, maximum, mean, median,
     /// mode(s), and variance.
@@ -29,21 +31,21 @@ public static class ExponentialDistribution
         if (double.IsNaN(lambda))
         {
             return new DistributionProperties(
-                    maximum: double.NaN,
-                    mean: double.NaN,
-                    median: double.NaN,
-                    minimum: double.NaN,
-                    mode: new[] { double.NaN },
-                    variance: double.NaN);
+                    double.NaN,
+                    double.NaN,
+                    double.NaN,
+                    double.NaN,
+                    null,
+                    double.NaN);
         }
         lambda = Math.Max(NumberValues.NearlyZeroDouble, lambda);
         return new DistributionProperties(
-                maximum: double.PositiveInfinity,
-                mean: 1 / lambda,
-                median: Mathematics.DoubleConstants.Ln2 / lambda,
-                minimum: 0,
-                mode: new[] { 0.0 },
-                variance: Math.Pow(lambda, -2));
+                double.PositiveInfinity,
+                1 / lambda,
+                DoubleConstants.Ln2 / lambda,
+                0,
+                _Mode,
+                Math.Pow(lambda, -2));
     }
 
     /// <summary>

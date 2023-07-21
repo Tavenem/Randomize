@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.2-preview.1
+### Added
+- Source generated (de)serialization support
+### Changed
+- Made `DistributionProperties` a record
+- Changed `DistributionProperties.Mode` from `double[]` to `IReadOnlyList<double>`
+- Made `RandomParameters` a record
+- Replaced `RandomParameters.Parameters` with strongly-typed properties for each distribution
+### Updated
+- Update to .NET 8 preview
+
 ## 2.1
 ### Updated
 - Update to .NET 7

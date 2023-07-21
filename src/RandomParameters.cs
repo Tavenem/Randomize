@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using System.Text.Json.Serialization;
 using Tavenem.Randomize.Distributions;
@@ -8,9 +9,133 @@ namespace Tavenem.Randomize;
 /// <summary>
 /// A set of rules for generating random values.
 /// </summary>
+/// <param name="DistributionType">
+/// The type of distribution in which the values are generated.
+/// </param>
+/// <param name="Minimum">The minimum allowable value.</param>
+/// <param name="Maximum">The maximum allowable value.</param>
+/// <param name="k">
+/// <para>
+/// The number of equal-weight categories. [1, <see cref="int.MaxValue"/>].
+/// </para>
+/// <para>
+/// A value less than or equal to zero will be treated as a 1.
+/// </para>
+/// <para>
+/// Ignored if <paramref name="Weights"/> are provided.
+/// </para>
+/// <para>
+/// Only relevant for categorical distributions.
+/// </para>
+/// </param>
+/// <param name="lambda">
+/// <para>
+/// The parameter of the distribution (rate parameter). (0, ∞)
+/// </para>
+/// <para>
+/// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+/// </para>
+/// <para>
+/// If less than or equal to zero, will be set to the smallest value recognized as greater than zero
+/// in this library (<see cref="NumberValues.NearlyZeroDouble"/>).
+/// </para>
+/// <para>
+/// Only relevant to exponential distributions.
+/// </para>
+/// </param>
+/// <param name="mu">
+/// <para>
+/// The location (mean) of the distribution.
+/// </para>
+/// <para>
+/// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+/// </para>
+/// <para>
+/// Only relevant to log-normal and logistic distributions.
+/// </para>
+/// </param>
+/// <param name="n">
+/// <para>
+/// The sample size (number of trials). [0, <see cref="uint.MaxValue"/>]
+/// </para>
+/// <para>
+/// The default of 1 trial gives the Bernoulli distribution.
+/// </para>
+/// <para>
+/// Only relevant for binomial distributions.
+/// </para>
+/// </param>
+/// <param name="p">
+/// <para>
+/// The normalized probability of an individual success. [0, 1]
+/// </para>
+/// <para>
+/// This value will be truncated to a valid value if it exceeds the allowable bounds.
+/// </para>
+/// <para>
+/// Only relevant for binomial distributions.
+/// </para>
+/// </param>
+/// <param name="sigma">
+/// <para>
+/// For log-normal and logistic distributions this refers to scale.
+/// </para>
+/// <para>
+/// For normal and positive normal distributions this refers to the standard deviation.
+/// </para>
+/// <para>
+/// Valued values for both types are in the range (0, ∞)
+/// </para>
+/// <para>
+/// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+/// </para>
+/// <para>
+/// If less than or equal to zero, will be set to the smallest value recognized as greater than zero
+/// in this library (<see cref="NumberValues.NearlyZeroDouble"/>).
+/// </para>
+/// <para>
+/// Only relevant to log-normal, logistic, normal, and positive normal distributions.
+/// </para>
+/// </param>
+/// <param name="Weights">
+/// <para>
+/// The normalized probability vector of a categorical distribution.
+/// </para>
+/// <para>
+/// Values do not need to be pre-normalized. They will be normalized if necessary.
+/// </para>
+/// <para>
+/// Any weights which are negative are treated as 0.
+/// </para>
+/// <para>
+/// If <see langword="null"/> or empty, a default set of 3 equal weights will be used.
+/// </para>
+/// </param>
+/// <param name="Precision">
+/// The number of decimal places to which non-integral values should be rounded.
+/// </param>
+/// <remarks>
+/// If <paramref name="Minimum"/> and <paramref name="Maximum"/> are both non-<see langword="null"/>
+/// and <paramref name="Minimum" /> is greater than <paramref name="Maximum" />, the result is
+/// determined by either <see cref="RandomizeOptions.InvalidIntegralRangeResult"/> or <see
+/// cref="RandomizeOptions.InvalidFloatingRangeResult" />, depending on the distribution type.
+/// </remarks>
 [JsonConverter(typeof(RandomParametersConverter))]
-public readonly struct RandomParameters :
-    IEqualityOperators<RandomParameters, RandomParameters, bool>,
+[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
+public readonly record struct RandomParameters(
+    DistributionType DistributionType = DistributionType.ContinuousUniform,
+    double? Minimum = null,
+    double? Maximum = null,
+#pragma warning disable IDE1006 // Naming Styles; deliberately lower-case
+    int k = 3,
+    double lambda = 1,
+    double mu = 0,
+    uint n = 1,
+    double p = 0.5,
+    double sigma = 1,
+#pragma warning restore IDE1006 // Naming Styles
+    IReadOnlyList<double>? Weights = null,
+    byte? Precision = null) :
     ISpanFormattable,
     ISpanParsable<RandomParameters>
 {
@@ -18,7 +143,7 @@ public readonly struct RandomParameters :
     /// Default parameters for a binomial distribution, in which the sample size is 1 and the
     /// probability of an individual success is 0.5.
     /// </summary>
-    public static RandomParameters Binomial { get; } = NewBinomial(new[] { 1, 0.5 });
+    public static RandomParameters Binomial { get; } = NewBinomial();
 
     /// <summary>
     /// Default parameters for a continuous, uniform distribution between 0 (inclusive) and 1
@@ -50,31 +175,31 @@ public readonly struct RandomParameters :
     /// <summary>
     /// Default parameters for an exponential distribution whose parameter (lambda) is 1.
     /// </summary>
-    public static RandomParameters DefaultExponential { get; } = NewExponential(parameters: new[] { 1.0 });
+    public static RandomParameters DefaultExponential { get; } = NewExponential();
 
     /// <summary>
     /// Default parameters for a logistic distribution whose location (mean, mu) is 0 and whose
     /// scale (sigma) is 1.
     /// </summary>
-    public static RandomParameters DefaultLogistic { get; } = NewLogistic(parameters: new[] { 0.0, 1.0 });
+    public static RandomParameters DefaultLogistic { get; } = NewLogistic();
 
     /// <summary>
     /// Default parameters for a log-normal distribution whose location (mean, mu) is 0 and
     /// whose scale (sigma) is 1.
     /// </summary>
-    public static RandomParameters DefaultLogNormal { get; } = NewLogNormal(parameters: new[] { 0.0, 1.0 });
+    public static RandomParameters DefaultLogNormal { get; } = NewLogNormal();
 
     /// <summary>
     /// Default parameters for a normal distribution whose location (mean, mu) is 0 and whose
     /// standard deviation (sigma) is 1.
     /// </summary>
-    public static RandomParameters DefaultNormal { get; } = NewNormal(parameters: new[] { 0.0, 1.0 });
+    public static RandomParameters DefaultNormal { get; } = NewNormal();
 
     /// <summary>
     /// Default parameters for the positive half of a normal distribution whose location (mean,
     /// mu) is 0 and whose standard deviation (sigma) is 1.
     /// </summary>
-    public static RandomParameters DefaultPositiveNormal { get; } = NewPositiveNormal(parameters: new[] { 0.0, 1.0 });
+    public static RandomParameters DefaultPositiveNormal { get; } = NewPositiveNormal();
 
     /// <summary>
     /// A distribution which always returns zero (as an <see cref="int"/>).
@@ -82,76 +207,145 @@ public readonly struct RandomParameters :
     public static RandomParameters Zero { get; } = NewFixedInt32(0);
 
     /// <summary>
-    /// The type of distribution in which the values are generated.
+    /// <para>
+    /// The parameter of the distribution (rate parameter). (0, ∞)
+    /// </para>
+    /// <para>
+    /// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// </para>
+    /// <para>
+    /// If less than or equal to zero, will be set to the smallest value recognized as greater
+    /// than zero in this library (<see cref="NumberValues.NearlyZeroDouble"/>).
+    /// </para>
+    /// <para>
+    /// Only relevant to exponential distributions.
+    /// </para>
     /// </summary>
-    public DistributionType DistributionType { get; }
-
-    /// <summary>
-    /// The maximum allowable value.
-    /// </summary>
-    public double? Maximum { get; }
-
-    /// <summary>
-    /// The minimum allowable value.
-    /// </summary>
-    public double? Minimum { get; }
-
-    /// <summary>
-    /// The parameters for the distribution. The number depends on the distribution type.
-    /// </summary>
-    public double[]? Parameters { get; }
-
-    /// <summary>
-    /// The number of decimal places to which non-integral values should be rounded.
-    /// </summary>
-    public byte? Precision { get; }
-
-    /// <summary>
-    /// Initializes a new instance of <see cref="RandomParameters"/>.
-    /// </summary>
-    /// <param name="distributionType">The type of distribution in which the values are
-    /// generated.</param>
-    /// <param name="minimum">The minimum allowable value.</param>
-    /// <param name="maximum">The maximum allowable value.</param>
-    /// <param name="parameters">The parameters for the distribution. The number depends on the
-    /// distribution type.</param>
-    /// <param name="precision">The number of decimal places to which non-integral values should
-    /// be rounded.</param>
-    /// <remarks>
-    /// If <paramref name="minimum"/> and <paramref name="maximum"/> are both non-<see
-    /// langword="null"/> and <paramref name="minimum" /> is greater than <paramref
-    /// name="maximum" />, the result is determined by either <see
-    /// cref="RandomizeOptions.InvalidIntegralRangeResult"/> or <see
-    /// cref="RandomizeOptions.InvalidFloatingRangeResult" />, depending on the distribution type.
-    /// </remarks>
-    public RandomParameters(
-        DistributionType distributionType = DistributionType.ContinuousUniform,
-        double? minimum = null,
-        double? maximum = null,
-        double[]? parameters = null,
-        byte? precision = null)
+    public double? Lambda { get; } = (DistributionType, lambda) switch
     {
-        DistributionType = distributionType;
-        Maximum = maximum;
-        Minimum = minimum;
-        Parameters = parameters;
-        Precision = precision;
-    }
+        (DistributionType.Exponential, double.NaN) => double.NaN,
+        (DistributionType.Exponential, var l) => Math.Max(NumberValues.NearlyZeroDouble, l),
+        _ => null,
+    };
+
+    /// <summary>
+    /// <para>
+    /// The location (mean) of the distribution.
+    /// </para>
+    /// <para>
+    /// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// </para>
+    /// <para>
+    /// Only relevant to log-normal, logistic, normal, and positive normal distributions.
+    /// </para>
+    /// </summary>
+    public double? Mu { get; } = DistributionType is DistributionType.LogNormal
+        or DistributionType.Logistic
+        ? mu
+        : null;
+
+    /// <summary>
+    /// The normalized probability of an individual success. [0, 1]
+    /// </summary>
+    /// <remarks>
+    /// Only relevant for binomial distributions.
+    /// </remarks>
+    public double? Probability { get; } = DistributionType == DistributionType.Binomial
+        ? p.Clamp(0, 1)
+        : null;
+
+    /// <summary>
+    /// <para>
+    /// The sample size (number of trials). [0, <see cref="uint.MaxValue"/>]
+    /// </para>
+    /// <para>
+    /// The default of 1 trial gives the Bernoulli distribution.
+    /// </para>
+    /// </summary>
+    /// <remarks>
+    /// Only relevant for binomial distributions.
+    /// </remarks>
+    public uint? SampleSize { get; } = DistributionType == DistributionType.Binomial
+        ? n
+        : null;
+
+    /// <summary>
+    /// <para>
+    /// The scale of the distribution. (0, ∞)
+    /// </para>
+    /// <para>
+    /// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// </para>
+    /// <para>
+    /// If less than or equal to zero, will be set to the smallest value recognized as greater
+    /// than zero in this library (<see cref="NumberValues.NearlyZeroDouble"/>).
+    /// </para>
+    /// <para>
+    /// Only relevant to log-normal, logistic, normal, and positive normal distributions.
+    /// </para>
+    /// </summary>
+    public double? Sigma { get; } = (DistributionType, sigma) switch
+    {
+        (DistributionType.LogNormal
+            or DistributionType.Logistic
+            or DistributionType.Normal
+            or DistributionType.PositiveNormal, double.NaN) => double.NaN,
+        (DistributionType.LogNormal
+            or DistributionType.Logistic
+            or DistributionType.Normal
+            or DistributionType.PositiveNormal, var s) => Math.Max(NumberValues.NearlyZeroDouble, s),
+        _ => null,
+    };
+
+    /// <summary>
+    /// <para>
+    /// The normalized probability vector of a categorical distribution.
+    /// </para>
+    /// <para>
+    /// Values do not need to be pre-normalized. They will be normalized if necessary.
+    /// </para>
+    /// <para>
+    /// Any weights which are negative are treated as 0.
+    /// </para>
+    /// <para>
+    /// If <see langword="null"/> or empty, a default set of 3 equal weights will be used.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<double>? Weights { get; } = DistributionType == DistributionType.Categorical
+        ? (Weights
+            ?? Enumerable.Repeat(1.0 / Math.Max(1, k), Math.Max(1, k)))
+            .ToList()
+            .AsReadOnly()
+        : null;
 
     /// <summary>
     /// Gets a new instance of <see cref="RandomParameters"/> for a binomial distribution.
     /// </summary>
-    /// <param name="parameters">An array whose first value is the sample size (N), and whose
-    /// second is the normalized probability of an individual success. [0, 1].</param>
-    public static RandomParameters NewBinomial(double[]? parameters = null)
-        => new(DistributionType.Binomial, parameters: parameters);
+    /// <param name="n">
+    /// <para>
+    /// The sample size (number of trials). [0, <see cref="uint.MaxValue"/>]
+    /// </para>
+    /// <para>
+    /// The default of 1 trial gives the Bernoulli distribution.
+    /// </para>
+    /// </param>
+    /// <param name="p">
+    /// <para>
+    /// The normalized probability of an individual success. [0, 1]
+    /// </para>
+    /// <para>
+    /// This value will be truncated to a valid value if it exceeds the allowable bounds.
+    /// </para>
+    /// </param>
+    public static RandomParameters NewBinomial(uint n = 1, double p = 0.5)
+        => new(DistributionType.Binomial, n: n, p: p);
 
     /// <summary>
     /// Gets a new instance of <see cref="RandomParameters"/> for a categorical distribution.
     /// </summary>
-    /// <param name="parameters">
+    /// <param name="weights">
     /// <para>
-    /// The normalized probability vector of the categorical distribution.
+    /// The normalized probability vector of a categorical distribution.
     /// </para>
     /// <para>
     /// Values do not need to be pre-normalized. They will be normalized if necessary.
@@ -163,8 +357,62 @@ public readonly struct RandomParameters :
     /// If <see langword="null"/> or empty, a default set of 3 equal weights will be used.
     /// </para>
     /// </param>
-    public static RandomParameters NewCategorical(double[]? parameters = null)
-        => new(DistributionType.Categorical, parameters: parameters);
+    public static RandomParameters NewCategorical(IReadOnlyList<double> weights)
+        => new(DistributionType.Categorical, Weights: weights);
+
+    /// <summary>
+    /// Gets a new instance of <see cref="RandomParameters"/> for a categorical distribution.
+    /// </summary>
+    /// <param name="weights">
+    /// <para>
+    /// The normalized probability vector of a categorical distribution.
+    /// </para>
+    /// <para>
+    /// Values do not need to be pre-normalized. They will be normalized if necessary.
+    /// </para>
+    /// <para>
+    /// Any weights which are negative are treated as 0.
+    /// </para>
+    /// <para>
+    /// If <see langword="null"/> or empty, a default set of 3 equal weights will be used.
+    /// </para>
+    /// </param>
+    public static RandomParameters NewCategorical(IList<double> weights)
+        => new(DistributionType.Categorical, Weights: weights.AsReadOnly());
+
+    /// <summary>
+    /// Gets a new instance of <see cref="RandomParameters"/> for a categorical distribution.
+    /// </summary>
+    /// <param name="weights">
+    /// <para>
+    /// The normalized probability vector of a categorical distribution.
+    /// </para>
+    /// <para>
+    /// Values do not need to be pre-normalized. They will be normalized if necessary.
+    /// </para>
+    /// <para>
+    /// Any weights which are negative are treated as 0.
+    /// </para>
+    /// <para>
+    /// If <see langword="null"/> or empty, a default set of 3 equal weights will be used.
+    /// </para>
+    /// </param>
+    public static RandomParameters NewCategorical(IEnumerable<double> weights)
+        => new(DistributionType.Categorical, Weights: weights.ToList().AsReadOnly());
+
+    /// <summary>
+    /// Gets a new instance of <see cref="RandomParameters"/> for a categorical distribution.
+    /// </summary>
+    /// <param name="k">
+    /// <para>
+    /// The number of equal-weight categories. [1, <see cref="int.MaxValue"/>].
+    /// </para>
+    /// <para>
+    /// A value less than or equal to zero will be treated as a 1.
+    /// </para>
+    /// </param>
+    public static RandomParameters NewCategorical(int k = 3)
+        => new(DistributionType.Categorical, k: k);
 
     /// <summary>
     /// Gets a new instance of <see cref="RandomParameters"/> for a continuous, uniform
@@ -183,7 +431,7 @@ public readonly struct RandomParameters :
         double minimum = 0,
         double maximum = 1,
         byte? precision = null)
-        => new(DistributionType.ContinuousUniform, minimum, maximum, precision: precision);
+        => new(DistributionType.ContinuousUniform, minimum, maximum, Precision: precision);
 
     /// <summary>
     /// Gets a new instance of <see cref="RandomParameters"/> for a uniform distribution of
@@ -228,10 +476,9 @@ public readonly struct RandomParameters :
     /// this value will not be generated.
     /// </para>
     /// </param>
-    /// <param name="parameters">
+    /// <param name="lambda">
     /// <para>
-    /// An array whose first value is the parameter of the distribution (rate parameter, lambda:
-    /// (0, ∞)).
+    /// The parameter of the distribution (rate parameter). (0, ∞)
     /// </para>
     /// <para>
     /// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
@@ -245,9 +492,9 @@ public readonly struct RandomParameters :
     /// be rounded.</param>
     public static RandomParameters NewExponential(
         double? maximum = null,
-        double[]? parameters = null,
+        double lambda = 1,
         byte? precision = null)
-        => new(DistributionType.Exponential, maximum: maximum, parameters: parameters, precision: precision);
+        => new(DistributionType.Exponential, Maximum: maximum, lambda: lambda, Precision: precision);
 
     /// <summary>
     /// Gets a new instance of <see cref="RandomParameters"/> for a distribution which always
@@ -272,7 +519,7 @@ public readonly struct RandomParameters :
     /// <param name="value">The value to return.</param>
     /// <param name="precision">The number of decimal places to which non-integral values should be rounded.</param>
     public static RandomParameters NewFixedReal(double value, byte? precision = null)
-        => new(DistributionType.ContinuousUniform, value, value, precision: precision);
+        => new(DistributionType.ContinuousUniform, value, value, Precision: precision);
 
     /// <summary>
     /// Gets a new instance of <see cref="RandomParameters"/> for a logistic distribution.
@@ -289,18 +536,24 @@ public readonly struct RandomParameters :
     /// this value will not be generated.
     /// </para>
     /// </param>
-    /// <param name="parameters">
+    /// <param name="mu">
     /// <para>
-    /// An array whose first value is the location (mean) of the distribution (mu), and whose
-    /// second is the scale of the distribution (sigma: (0, ∞)).
+    /// The location (mean) of the distribution.
     /// </para>
     /// <para>
-    /// If either is <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// </para>
+    /// </param>
+    /// <param name="sigma">
+    /// <para>
+    /// The scale of the distribution. (0, ∞)
     /// </para>
     /// <para>
-    /// If sigma is less than or equal to zero, it will be set to the smallest value recognized
-    /// as greater than zero in this library (<see
-    /// cref="NumberValues.NearlyZeroDouble"/>).
+    /// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// </para>
+    /// <para>
+    /// If less than or equal to zero, will be set to the smallest value recognized as greater
+    /// than zero in this library (<see cref="NumberValues.NearlyZeroDouble"/>).
     /// </para>
     /// </param>
     /// <param name="precision">The number of decimal places to which non-integral values should
@@ -314,9 +567,10 @@ public readonly struct RandomParameters :
     public static RandomParameters NewLogistic(
         double? minimum = null,
         double? maximum = null,
-        double[]? parameters = null,
+        double mu = 0,
+        double sigma = 1,
         byte? precision = null)
-        => new(DistributionType.Logistic, minimum, maximum, parameters, precision);
+        => new(DistributionType.Logistic, minimum, maximum, mu: mu, sigma: sigma, Precision: precision);
 
     /// <summary>
     /// Gets a new instance of <see cref="RandomParameters"/> for a log-normal distribution.
@@ -333,18 +587,24 @@ public readonly struct RandomParameters :
     /// this value will not be generated.
     /// </para>
     /// </param>
-    /// <param name="parameters">
+    /// <param name="mu">
     /// <para>
-    /// An array whose first value is the location (mean) of the distribution (mu), and whose
-    /// second is the scale of the distribution (sigma: (0, ∞)).
+    /// The location (mean) of the distribution.
     /// </para>
     /// <para>
-    /// If either is <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// </para>
+    /// </param>
+    /// <param name="sigma">
+    /// <para>
+    /// The scale of the distribution. (0, ∞)
     /// </para>
     /// <para>
-    /// If sigma is less than or equal to zero, it will be set to the smallest value recognized
-    /// as greater than zero in this library (<see
-    /// cref="NumberValues.NearlyZeroDouble"/>).
+    /// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// </para>
+    /// <para>
+    /// If less than or equal to zero, will be set to the smallest value recognized as greater
+    /// than zero in this library (<see cref="NumberValues.NearlyZeroDouble"/>).
     /// </para>
     /// </param>
     /// <param name="precision">The number of decimal places to which non-integral values should
@@ -358,9 +618,10 @@ public readonly struct RandomParameters :
     public static RandomParameters NewLogNormal(
         double? minimum = null,
         double? maximum = null,
-        double[]? parameters = null,
+        double mu = 0,
+        double sigma = 1,
         byte? precision = null)
-        => new(DistributionType.LogNormal, minimum, maximum, parameters, precision);
+        => new(DistributionType.LogNormal, minimum, maximum, mu: mu, sigma: sigma, Precision: precision);
 
     /// <summary>
     /// Gets a new instance of <see cref="RandomParameters"/> for a normal distribution.
@@ -377,18 +638,24 @@ public readonly struct RandomParameters :
     /// this value will not be generated.
     /// </para>
     /// </param>
-    /// <param name="parameters">
+    /// <param name="mu">
     /// <para>
-    /// An array whose first value is the location (mean) of the distribution (mu), and whose
-    /// second is the standard deviation of the distribution (sigma: (0, ∞)).
+    /// The location (mean) of the distribution.
     /// </para>
     /// <para>
-    /// If either is <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// </para>
+    /// </param>
+    /// <param name="sigma">
+    /// <para>
+    /// The standard deviation of the distribution. (0, ∞)
     /// </para>
     /// <para>
-    /// If sigma is less than or equal to zero, it will be set to the smallest value recognized
-    /// as greater than zero in this library (<see
-    /// cref="NumberValues.NearlyZeroDouble"/>).
+    /// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// </para>
+    /// <para>
+    /// If less than or equal to zero, will be set to the smallest value recognized as greater
+    /// than zero in this library (<see cref="NumberValues.NearlyZeroDouble"/>).
     /// </para>
     /// </param>
     /// <param name="precision">The number of decimal places to which non-integral values should
@@ -402,9 +669,10 @@ public readonly struct RandomParameters :
     public static RandomParameters NewNormal(
         double? minimum = null,
         double? maximum = null,
-        double[]? parameters = null,
+        double mu = 0,
+        double sigma = 1,
         byte? precision = null)
-        => new(DistributionType.Normal, minimum, maximum, parameters, precision);
+        => new(DistributionType.Normal, minimum, maximum, mu: mu, sigma: sigma, Precision: precision);
 
     /// <summary>
     /// Gets a new instance of <see cref="RandomParameters"/> for the positive half of a normal
@@ -416,27 +684,34 @@ public readonly struct RandomParameters :
     /// this value will not be generated.
     /// </para>
     /// </param>
-    /// <param name="parameters">
+    /// <param name="mu">
     /// <para>
-    /// An array whose first value is the location (mean) of the distribution (mu), and whose
-    /// second is the standard deviation of the distribution (sigma: (0, ∞)).
+    /// The location (mean) of the distribution.
     /// </para>
     /// <para>
-    /// If either is <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// </para>
+    /// </param>
+    /// <param name="sigma">
+    /// <para>
+    /// The standard deviation of the distribution. (0, ∞)
     /// </para>
     /// <para>
-    /// If sigma is less than or equal to zero, it will be set to the smallest value recognized
-    /// as greater than zero in this library (<see
-    /// cref="NumberValues.NearlyZeroDouble"/>).
+    /// If <see cref="double.NaN"/>, all results will be <see cref="double.NaN"/>.
+    /// </para>
+    /// <para>
+    /// If less than or equal to zero, will be set to the smallest value recognized as greater
+    /// than zero in this library (<see cref="NumberValues.NearlyZeroDouble"/>).
     /// </para>
     /// </param>
     /// <param name="precision">The number of decimal places to which non-integral values should
     /// be rounded.</param>
     public static RandomParameters NewPositiveNormal(
         double? maximum = null,
-        double[]? parameters = null,
+        double mu = 0,
+        double sigma = 1,
         byte? precision = null)
-        => new(DistributionType.PositiveNormal, maximum: maximum, parameters: parameters, precision: precision);
+        => new(DistributionType.PositiveNormal, Maximum: maximum, mu: mu, sigma: sigma, Precision: precision);
 
     /// <summary>
     /// Converts the specified string representation to a <see cref="RandomParameters"/>
@@ -898,48 +1173,26 @@ public readonly struct RandomParameters :
     /// instance and the <paramref name="other"/> instance.
     /// </summary>
     /// <param name="other">An instance to combine with this one.</param>
-    /// <returns>A <see cref="RandomParameters"/> instance that represents the combination of
-    /// this instance and the <paramref name="other"/> instance.</returns>
+    /// <returns>
+    /// A <see cref="RandomParameters"/> instance that represents the combination of this instance
+    /// and the <paramref name="other"/> instance.
+    /// </returns>
     /// <remarks>
     /// <para>
-    /// The largest <see cref="Maximum"/> and lowest <see cref="Minimum"/>
-    /// are taken, as well as the highest <see cref="Precision"/>. For each parameter present,
-    /// the average of both values is used (or the only value present, if it is missing in
-    /// either).
+    /// The largest <see cref="Maximum"/> and lowest <see cref="Minimum"/> are taken, as well as the
+    /// highest <see cref="Precision"/>.
     /// </para>
     /// <para>
-    /// If the two distribution types are not the same, the one with the higher enumeration
-    /// value is used. However, note that distributions of differing types may have incompatible
-    /// parameter lists. This should not cause any errors due to the combination method, but the
-    /// results may not make sense for the resulting type.
+    /// For all other parameters, the average of the values is used (or the only value present, if
+    /// it is unset in either).
+    /// </para>
+    /// <para>
+    /// If the two distribution types are not the same, the one with the higher enumeration value is
+    /// used.
     /// </para>
     /// </remarks>
     public RandomParameters Combine(RandomParameters other)
     {
-        double[]? parameters = null;
-        var parameterLength = Math.Max(Parameters?.Length ?? 0, other.Parameters?.Length ?? 0);
-        if (parameterLength > 0)
-        {
-            parameters = new double[parameterLength];
-            if (Parameters is null)
-            {
-                if (other.Parameters is not null)
-                {
-                    Array.Copy(other.Parameters, 0, parameters, 0, parameterLength);
-                }
-            }
-            else if (other.Parameters is null)
-            {
-                Array.Copy(Parameters, 0, parameters, 0, parameterLength);
-            }
-            else
-            {
-                for (var i = 0; i < parameterLength; i++)
-                {
-                    parameters[i] = (Parameters[i] + other.Parameters[i]) / 2.0;
-                }
-            }
-        }
         double? minimum;
         if (Minimum.HasValue)
         {
@@ -974,6 +1227,122 @@ public readonly struct RandomParameters :
             maximum = other.Maximum;
         }
 
+        double? lambda;
+        if (Lambda.HasValue)
+        {
+            if (other.Lambda.HasValue)
+            {
+                lambda = (Lambda.Value + other.Lambda.Value) / 2;
+            }
+            else
+            {
+                lambda = Lambda.Value;
+            }
+        }
+        else
+        {
+            lambda = other.Lambda;
+        }
+
+        double? mu;
+        if (Mu.HasValue)
+        {
+            if (other.Mu.HasValue)
+            {
+                mu = (Mu.Value + other.Mu.Value) / 2;
+            }
+            else
+            {
+                mu = Mu.Value;
+            }
+        }
+        else
+        {
+            mu = other.Mu;
+        }
+
+        uint? n;
+        if (SampleSize.HasValue)
+        {
+            if (other.SampleSize.HasValue)
+            {
+                n = (uint)(((ulong)SampleSize.Value + other.SampleSize.Value) / 2);
+            }
+            else
+            {
+                n = SampleSize.Value;
+            }
+        }
+        else
+        {
+            n = other.SampleSize;
+        }
+
+        double? p;
+        if (Probability.HasValue)
+        {
+            if (other.Probability.HasValue)
+            {
+                p = (Probability.Value + other.Probability.Value) / 2;
+            }
+            else
+            {
+                p = Probability.Value;
+            }
+        }
+        else
+        {
+            p = other.Probability;
+        }
+
+        double? sigma;
+        if (Sigma.HasValue)
+        {
+            if (other.Sigma.HasValue)
+            {
+                sigma = (Sigma.Value + other.Sigma.Value) / 2;
+            }
+            else
+            {
+                sigma = Sigma.Value;
+            }
+        }
+        else
+        {
+            sigma = other.Sigma;
+        }
+
+        IReadOnlyList<double>? weights;
+        if (Weights is null)
+        {
+            weights = other.Weights;
+        }
+        else if (other.Weights is null)
+        {
+            weights = Weights;
+        }
+        else
+        {
+            var weightList = new List<double>(Weights.Count);
+            var i = 0;
+            for (; i < Weights.Count; i++)
+            {
+                if (i < other.Weights.Count)
+                {
+                    weightList.Add((Weights[i] + other.Weights[i]) / 2);
+                }
+                else
+                {
+                    weightList.Add(Weights[i]);
+                }
+            }
+            for (; i < other.Weights.Count; i++)
+            {
+                weightList.Add(other.Weights[i]);
+            }
+            weights = weightList.AsReadOnly();
+        }
+
         byte? precision;
         if (Precision.HasValue)
         {
@@ -995,7 +1364,13 @@ public readonly struct RandomParameters :
             (DistributionType)Math.Max((int)DistributionType, (int)other.DistributionType),
             minimum,
             maximum,
-            parameters,
+            3,
+            lambda ?? 1,
+            mu ?? 0,
+            n ?? 1,
+            p ?? 0.5,
+            sigma ?? 1,
+            weights,
             precision);
     }
 
@@ -1005,29 +1380,42 @@ public readonly struct RandomParameters :
     /// name="other">other</paramref> parameter; otherwise, <see langword="false"/>.</returns>
     public bool Equals(RandomParameters other)
         => DistributionType == other.DistributionType
+        && Lambda == other.Lambda
         && Maximum == other.Maximum
         && Minimum == other.Minimum
-        && (Parameters is null) == (other.Parameters is null)
-        && (Parameters is null
-        || ((Parameters.Length == other.Parameters!.Length)
-        && Parameters.SequenceEqual(other.Parameters)))
-        && Precision == other.Precision;
+        && Mu == other.Mu
+        && Precision == other.Precision
+        && Probability == other.Probability
+        && SampleSize == other.SampleSize
+        && Sigma == other.Sigma
+        && ((Weights is null && other.Weights is null)
+            || (Weights is not null
+                && other.Weights is not null
+                && Weights.SequenceEqual(other.Weights)));
 
-    /// <summary>Indicates whether this instance and a specified object are equal.</summary>
-    /// <param name="obj">The object to compare with the current instance.</param>
-    /// <returns><see langword="true"/> if <paramref name="obj">obj</paramref> and this instance
-    /// are the same type and represent the same value; otherwise, <see
-    /// langword="false"/>.</returns>
-    public override bool Equals(object? obj) => obj is RandomParameters other && Equals(other);
+    /// <summary>Indicates whether the current object is equal to another object of the same type.</summary>
+    /// <param name="other">An object to compare with this object.</param>
+    /// <returns><see langword="true"/> if the current object is equal to the <paramref
+    /// name="other">other</paramref> parameter; otherwise, <see langword="false"/>.</returns>
+    public bool Equals(RandomParameters? other)
+        => other.HasValue && Equals(other.Value);
 
-    /// <summary>Returns the hash code for this instance.</summary>
-    /// <returns>A 32-bit signed integer that is the hash code for this instance.</returns>
-    public override int GetHashCode() => HashCode.Combine(
-        DistributionType,
-        Maximum,
-        Minimum,
-        Parameters,
-        Precision);
+    /// <inheritdoc/>
+    public override int GetHashCode()
+    {
+        var hashCode = new HashCode();
+        hashCode.Add(DistributionType.GetHashCode());
+        hashCode.Add(Lambda.GetHashCode());
+        hashCode.Add(Maximum.GetHashCode());
+        hashCode.Add(Minimum.GetHashCode());
+        hashCode.Add(Mu.GetHashCode());
+        hashCode.Add(Precision.GetHashCode());
+        hashCode.Add(Probability.GetHashCode());
+        hashCode.Add(SampleSize.GetHashCode());
+        hashCode.Add(Sigma.GetHashCode());
+        hashCode.Add(GetWeightsHashCode());
+        return hashCode.ToHashCode();
+    }
 
     /// <summary>Returns a string representation of this instance.</summary>
     /// <param name="format">
@@ -1038,22 +1426,22 @@ public readonly struct RandomParameters :
     /// <see langword="null"/> or an empty string is also accepted, and resolves as "g".
     /// </para>
     /// <para>
-    /// The general format ("g") produces a string similar to "Normal distribution
-    /// (0.00;Infinity) [1.00;0.33] r:3" where the numbers in parentheses indicate the minimum
-    /// and maximum (if either is provided), the numbers in brackets are the parameters (if
-    /// any), and the value after "r:" is the precision.
+    /// The general format ("g") produces a string similar to "Normal distribution (0.00;Infinity)
+    /// [1.00;0.33] r:3" where the numbers in parentheses indicate the minimum and maximum (if
+    /// either is provided), the numbers in brackets are the parameters (if any), and the value
+    /// after "r:" is the precision.
     /// </para>
     /// <para>
     /// The round-trip format ("r") produces a string similar to
     /// "9:0.0000000000000000;Infinity:1.0000000000000000;0.3300000000000000:3" where the number
-    /// before the first colon indicates the distribution type, the numbers between the first
-    /// and second semicolon indicate the range, any parameters appear as a semicolon-delimited
-    /// list between the second and third semicolon, and the number after the third semicolon is
-    /// the precision. All three semicolons are always present, even if there are no parameters.
-    /// The limits of the range and any paramaters are displayed in G17 format (to successfully
-    /// round-trip the <see cref="double"/> values). The invariant culture is always used to
-    /// format the numbers in the round-trip format, regardless of the <paramref
-    /// name="provider"/> supplied, to ensure successful round-tripping across systems.
+    /// before the first colon indicates the distribution type, the numbers between the first and
+    /// second colon indicate the range, any parameters appear as a semicolon-delimited list between
+    /// the second and third colon, and the number after the third colon is the precision. All three
+    /// colons are always present, even if there are no parameters. The limits of the range and any
+    /// parameters are displayed in G17 format (to successfully round-trip the <see cref="double"/>
+    /// values). The invariant culture is always used to format the numbers in the round-trip
+    /// format, regardless of the <paramref name="provider"/> supplied, to ensure successful
+    /// round-tripping across systems.
     /// </para>
     /// </param>
     /// <param name="provider">
@@ -1133,8 +1521,8 @@ public readonly struct RandomParameters :
             return false;
         }
         var slice = value[..index];
-        if (!Enum.TryParse(typeof(DistributionType), slice.ToString(), out var distTypeValue)
-            || distTypeValue is not DistributionType distributionTypeValue)
+        if (!Enum.TryParse(typeof(DistributionType), slice.ToString(), out var distributionTypeObject)
+            || distributionTypeObject is not DistributionType distributionTypeValue)
         {
             return false;
         }
@@ -1214,6 +1602,38 @@ public readonly struct RandomParameters :
             }
         }
 
+        var lambda = 1.0;
+        var sampleSize = 1u;
+        var probability = 0.5;
+        var mu = 0.0;
+        var sigma = 1.0;
+        IReadOnlyList<double>? weights = null;
+        if (distributionType == DistributionType.Exponential)
+        {
+            lambda = parameters?.FirstOrDefault() ?? 1;
+        }
+        else if (distributionType == DistributionType.Binomial)
+        {
+            var sampleSizeDouble = parameters?.FirstOrDefault();
+            if (sampleSizeDouble.HasValue)
+            {
+                sampleSize = (uint)Math.Round(sampleSizeDouble.Value);
+            }
+            probability = parameters?.Skip(1).FirstOrDefault() ?? 0.5;
+        }
+        else if (distributionType == DistributionType.Categorical)
+        {
+            weights = parameters?.AsReadOnly();
+        }
+        else if (distributionType is DistributionType.PositiveNormal
+            or DistributionType.LogNormal
+            or DistributionType.Logistic
+            or DistributionType.Normal)
+        {
+            mu = parameters?.FirstOrDefault() ?? 0;
+            sigma = parameters?.Skip(1).FirstOrDefault() ?? 1;
+        }
+
         byte? precision = null;
         index = value.IndexOf("r:");
         if (index != -1)
@@ -1229,7 +1649,18 @@ public readonly struct RandomParameters :
             }
         }
 
-        result = new RandomParameters(distributionType, min, max, parameters.Count == 0 ? null : parameters.ToArray(), precision);
+        result = new RandomParameters(
+            distributionType,
+            min,
+            max,
+            3,
+            lambda,
+            mu,
+            sampleSize,
+            probability,
+            sigma,
+            weights,
+            precision);
         return true;
     }
 
@@ -1336,6 +1767,38 @@ public readonly struct RandomParameters :
             index += nextIndex + 1;
         }
 
+        var lambda = 1.0;
+        var sampleSize = 1u;
+        var probability = 0.5;
+        var mu = 0.0;
+        var sigma = 1.0;
+        IReadOnlyList<double>? weights = null;
+        if (distributionType == DistributionType.Exponential)
+        {
+            lambda = parameters?.FirstOrDefault() ?? 1;
+        }
+        else if (distributionType == DistributionType.Binomial)
+        {
+            var sampleSizeDouble = parameters?.FirstOrDefault();
+            if (sampleSizeDouble.HasValue)
+            {
+                sampleSize = (uint)Math.Round(sampleSizeDouble.Value);
+            }
+            probability = parameters?.Skip(1).FirstOrDefault() ?? 0.5;
+        }
+        else if (distributionType == DistributionType.Categorical)
+        {
+            weights = parameters?.AsReadOnly();
+        }
+        else if (distributionType is DistributionType.PositiveNormal
+            or DistributionType.LogNormal
+            or DistributionType.Logistic
+            or DistributionType.Normal)
+        {
+            mu = parameters?.FirstOrDefault() ?? 0;
+            sigma = parameters?.Skip(1).FirstOrDefault() ?? 1;
+        }
+
         byte? precision = null;
         if (value.Length > index + 1)
         {
@@ -1350,7 +1813,18 @@ public readonly struct RandomParameters :
             }
         }
 
-        result = new RandomParameters(distributionType, min, max, parameters.Count == 0 ? null : parameters.ToArray(), precision);
+        result = new RandomParameters(
+            distributionType,
+            min,
+            max,
+            3,
+            lambda,
+            mu,
+            sampleSize,
+            probability,
+            sigma,
+            weights,
+            precision);
         return true;
     }
 
@@ -1381,17 +1855,62 @@ public readonly struct RandomParameters :
             }
             s.Append(')');
         }
-        if (Parameters?.Length > 0)
+        if (DistributionType is DistributionType.Binomial
+            or DistributionType.Categorical
+            or DistributionType.PositiveNormal
+            or DistributionType.Exponential
+            or DistributionType.LogNormal
+            or DistributionType.Logistic
+            or DistributionType.Normal)
         {
             s.Append(" [");
-            for (var i = 0; i < Parameters.Length; i++)
+
+            if (DistributionType == DistributionType.Exponential)
             {
-                if (i != 0)
-                {
-                    s.Append(';');
-                }
-                s.Append(Parameters[i].ToString("f2", nfi));
+                s.Append((Lambda ?? 1).ToString("f2", nfi));
             }
+            else if (DistributionType == DistributionType.Binomial)
+            {
+                s.Append((SampleSize ?? 1).ToString("f2", nfi))
+                    .Append(';')
+                    .Append((Probability ?? 0.5).ToString("f2", nfi));
+            }
+            else if (DistributionType == DistributionType.Categorical)
+            {
+                if (Weights is null)
+                {
+                    const double w = 1.0 / 3.0;
+                    for (var i = 0; i < 3; i++)
+                    {
+                        if (i != 0)
+                        {
+                            s.Append(';');
+                        }
+                        s.Append(w.ToString("f2", nfi));
+                    }
+                }
+                else
+                {
+                    for (var i = 0; i < Weights.Count; i++)
+                    {
+                        if (i != 0)
+                        {
+                            s.Append(';');
+                        }
+                        s.Append(Weights[i].ToString("f2", nfi));
+                    }
+                }
+            }
+            else if (DistributionType is DistributionType.PositiveNormal
+                or DistributionType.LogNormal
+                or DistributionType.Logistic
+                or DistributionType.Normal)
+            {
+                s.Append((Mu ?? 0).ToString("f2", nfi))
+                    .Append(';')
+                    .Append((Sigma ?? 1).ToString("f2", nfi));
+            }
+
             s.Append(']');
         }
         if (Precision.HasValue)
@@ -1419,7 +1938,7 @@ public readonly struct RandomParameters :
 
         if (Maximum.HasValue)
         {
-            s.Append(Maximum.Value.ToString("f2", NumberFormatInfo.InvariantInfo));
+            s.Append(Maximum.Value.ToString("g17", NumberFormatInfo.InvariantInfo));
         }
         else
         {
@@ -1428,15 +1947,52 @@ public readonly struct RandomParameters :
 
         s.Append(':');
 
-        if (Parameters?.Length > 0)
+        if (DistributionType == DistributionType.Exponential)
         {
-            for (var i = 0; i < Parameters.Length; i++)
+            s.Append((Lambda ?? 1).ToString("g17", NumberFormatInfo.InvariantInfo));
+        }
+
+        if (DistributionType == DistributionType.Binomial)
+        {
+            s.Append((SampleSize ?? 1).ToString("g17", NumberFormatInfo.InvariantInfo))
+                .Append(';')
+                .Append((Probability ?? 0.5).ToString("g17", NumberFormatInfo.InvariantInfo));
+        }
+
+        if (DistributionType is DistributionType.PositiveNormal
+            or DistributionType.LogNormal
+            or DistributionType.Logistic
+            or DistributionType.Normal)
+        {
+            s.Append((Mu ?? 0).ToString("g17", NumberFormatInfo.InvariantInfo))
+                .Append(';')
+                .Append((Sigma ?? 1).ToString("g17", NumberFormatInfo.InvariantInfo));
+        }
+
+        if (DistributionType == DistributionType.Categorical)
+        {
+            if (Weights is null)
             {
-                if (i != 0)
+                const double w = 1.0 / 3.0;
+                for (var i = 0; i < 3; i++)
                 {
-                    s.Append(';');
+                    if (i != 0)
+                    {
+                        s.Append(';');
+                    }
+                    s.Append(w.ToString("g17", NumberFormatInfo.InvariantInfo));
                 }
-                s.Append(Parameters[i].ToString("g17", NumberFormatInfo.InvariantInfo));
+            }
+            else
+            {
+                for (var i = 0; i < Weights.Count; i++)
+                {
+                    if (i != 0)
+                    {
+                        s.Append(';');
+                    }
+                    s.Append(Weights[i].ToString("g17", NumberFormatInfo.InvariantInfo));
+                }
             }
         }
 
@@ -1450,22 +2006,18 @@ public readonly struct RandomParameters :
         return s;
     }
 
-    /// <summary>
-    /// Indicates whether the current object is equal to another object of the same type.
-    /// </summary>
-    /// <param name="first">The first value.</param>
-    /// <param name="second">The second value.</param>
-    /// <returns><see langword="true"/> if <paramref name="first"/> is equal to the <paramref
-    /// name="second">other</paramref> parameter; otherwise, <see langword="false"/>.</returns>
-    public static bool operator ==(RandomParameters first, RandomParameters second) => first.Equals(second);
+    private string GetDebuggerDisplay() => ToString();
 
-    /// <summary>
-    /// Indicates whether the current object is not equal to another object of the same type.
-    /// </summary>
-    /// <param name="first">The first value.</param>
-    /// <param name="second">The second value.</param>
-    /// <returns><see langword="true"/> if <paramref name="first"/> is not equal to the
-    /// <paramref name="second">other</paramref> parameter; otherwise, <see
-    /// langword="false"/>.</returns>
-    public static bool operator !=(RandomParameters first, RandomParameters second) => !first.Equals(second);
+    private int GetWeightsHashCode()
+    {
+        if (Weights is null)
+        {
+            return 0;
+        }
+        unchecked
+        {
+            return 367 * Weights
+                .Aggregate(0, (a, c) => (a * 397) ^ c.GetHashCode());
+        }
+    }
 }

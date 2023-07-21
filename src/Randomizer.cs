@@ -166,7 +166,7 @@ public class Randomizer
     /// <exception cref="ArgumentException">
     /// The <paramref name="weights"/> collection sums to zero.
     /// </exception>
-    public int CategoricalDistributionSample(ICollection<double>? weights = null)
+    public int CategoricalDistributionSample(IEnumerable<double>? weights = null)
         => CategoricalDistribution.Samples(_generator, 1, weights).First();
 
     /// <summary>
@@ -654,7 +654,7 @@ public class Randomizer
     /// </para>
     /// <para>
     /// Each element has an equal chance of being selected. To select elements according to a
-    /// weighted ditribution, use <see cref="Next{T}(IList{T}, Func{T, double})"/>. Note that if
+    /// weighted distribution, use <see cref="Next{T}(IList{T}, Func{T, double})"/>. Note that if
     /// you are generating multiple results, it is more efficient to instead call <see
     /// cref="CategoricalDistributionSamples(int, ICollection{double})"/> with the collection of
     /// weights as the parameter, and take the results as indexes to selected items in the
@@ -782,7 +782,6 @@ public class Randomizer
     {
         double result;
         var precision = parameters.Precision;
-        double mu, sigma;
         switch (parameters.DistributionType)
         {
             case DistributionType.ContinuousUniform:
@@ -838,60 +837,46 @@ public class Randomizer
                 precision = 0;
                 break;
             case DistributionType.Binomial:
-                var n = parameters.Parameters is null || parameters.Parameters.Length == 0
-                    ? 1U
-                    : (uint)Math.Round(parameters.Parameters[0]);
-                var p = parameters.Parameters is null || parameters.Parameters.Length < 2
-                    ? 0.5
-                    : parameters.Parameters[1];
-                result = BinomialDistributionSample(n, p);
+                result = BinomialDistributionSample(
+                    parameters.SampleSize ?? 1,
+                    parameters.Probability ?? 0.5);
                 precision = 0;
                 break;
             case DistributionType.Categorical:
-                result = CategoricalDistributionSample(parameters.Parameters);
+                result = CategoricalDistributionSample(parameters.Weights);
                 precision = 0;
                 break;
             case DistributionType.PositiveNormal:
-                mu = parameters.Parameters is null || parameters.Parameters.Length == 0
-                    ? 0.0
-                    : parameters.Parameters[0];
-                sigma = parameters.Parameters is null || parameters.Parameters.Length < 2
-                    ? 1.0
-                    : parameters.Parameters[1];
-                result = PositiveNormalDistributionSample(mu, sigma, parameters.Maximum);
+                result = PositiveNormalDistributionSample(
+                    parameters.Mu ?? 0,
+                    parameters.Sigma ?? 1,
+                    parameters.Maximum);
                 break;
             case DistributionType.Exponential:
-                var lambda = parameters.Parameters is null || parameters.Parameters.Length == 0
-                    ? 0.0
-                    : parameters.Parameters[0];
-                result = ExponentialDistributionSample(lambda, parameters.Maximum);
+                result = ExponentialDistributionSample(
+                    parameters.Lambda ?? 1,
+                    parameters.Maximum);
                 break;
             case DistributionType.LogNormal:
-                mu = parameters.Parameters is null || parameters.Parameters.Length == 0
-                    ? 0.0
-                    : parameters.Parameters[0];
-                sigma = parameters.Parameters is null || parameters.Parameters.Length < 2
-                    ? 1.0
-                    : parameters.Parameters[1];
-                result = LogNormalDistributionSample(mu, sigma, parameters.Minimum, parameters.Maximum);
+                result = LogNormalDistributionSample(
+                    parameters.Mu ?? 0,
+                    parameters.Sigma ?? 1,
+                    parameters.Minimum,
+                    parameters.Maximum);
                 break;
             case DistributionType.Logistic:
-                mu = parameters.Parameters is null || parameters.Parameters.Length == 0
-                    ? 0.0
-                    : parameters.Parameters[0];
-                sigma = parameters.Parameters is null || parameters.Parameters.Length < 2
-                    ? 1.0
-                    : parameters.Parameters[1];
-                result = LogisticDistributionSample(mu, sigma, parameters.Minimum, parameters.Maximum);
+                result = LogisticDistributionSample(
+                    parameters.Mu ?? 0,
+                    parameters.Sigma ?? 1,
+                    parameters.Minimum,
+                    parameters.Maximum);
                 break;
             case DistributionType.Normal:
-                mu = parameters.Parameters is null || parameters.Parameters.Length == 0
-                    ? 0.0
-                    : parameters.Parameters[0];
-                sigma = parameters.Parameters is null || parameters.Parameters.Length < 2
-                    ? 1.0
-                    : parameters.Parameters[1];
-                result = NormalDistributionSample(mu, sigma, parameters.Minimum, parameters.Maximum);
+                result = NormalDistributionSample(
+                    parameters.Mu ?? 0,
+                    parameters.Sigma ?? 1,
+                    parameters.Minimum,
+                    parameters.Maximum);
                 break;
             default:
                 result = 0;
@@ -1097,7 +1082,7 @@ public class Randomizer
     /// </para>
     /// <para>
     /// Each index has an equal chance of being selected. To select an index according to a
-    /// weighted ditribution, use <see cref="NextIndex{T}(IList{T}, Func{T, double})"/>. Note
+    /// weighted distribution, use <see cref="NextIndex{T}(IList{T}, Func{T, double})"/>. Note
     /// that if you are generating multiple results, it is more efficient to instead call <see
     /// cref="CategoricalDistributionSamples(int, ICollection{double})"/> with the collection of
     /// weights as the parameter.

@@ -49,7 +49,7 @@ public static class CategoricalDistribution
     /// <exception cref="ArgumentException">
     /// The <paramref name="weights"/> collection sums to zero.
     /// </exception>
-    public static DistributionProperties GetDistributionProperties(ICollection<double>? weights = null)
+    public static DistributionProperties GetDistributionProperties(IEnumerable<double>? weights = null)
     {
         if (weights?.Any() != true)
         {
@@ -63,7 +63,7 @@ public static class CategoricalDistribution
     /// </summary>
     /// <param name="k">
     /// <para>
-    /// The number of equal-weight categories. (0, <see cref="int.MaxValue"/>].
+    /// The number of equal-weight categories. [1, <see cref="int.MaxValue"/>].
     /// </para>
     /// <para>
     /// A value less than or equal to zero will be treated as a 1.
@@ -126,7 +126,7 @@ public static class CategoricalDistribution
     /// <exception cref="ArgumentException">
     /// The <paramref name="weights"/> collection sums to zero.
     /// </exception>
-    public static IEnumerable<int> Samples(RandomNumberGenerator? generator = null, int numberOfSamples = 1, ICollection<double>? weights = null)
+    public static IEnumerable<int> Samples(RandomNumberGenerator? generator = null, int numberOfSamples = 1, IEnumerable<double>? weights = null)
     {
         if (weights?.Any() != true)
         {
@@ -161,7 +161,7 @@ public static class CategoricalDistribution
         return minIndex;
     }
 
-    private static (DistributionProperties properties, double[] cumulativeDistribution) GetProperties(ICollection<double> weights)
+    private static (DistributionProperties properties, double[] cumulativeDistribution) GetProperties(IEnumerable<double> weights)
     {
         var totalWeight = weights.Sum();
         if (totalWeight.IsNearlyZero())
@@ -169,7 +169,7 @@ public static class CategoricalDistribution
             throw new ArgumentException(ErrorMessages.TotalWeightIsZero, nameof(weights));
         }
         var normalizedWeights = weights.ToArray();
-        var cumulativeDistributionFunction = new double[weights.Count];
+        var cumulativeDistributionFunction = new double[normalizedWeights.Length];
 
         if (!totalWeight.IsNearlyEqualTo(1))
         {
@@ -210,11 +210,11 @@ public static class CategoricalDistribution
 
         return (
             new DistributionProperties(
-                maximum: normalizedWeights.Length - 1,
+                normalizedWeights.Length - 1,
                 mean,
                 median,
-                minimum: 0,
-                mode: new double[] { maxWeightIndex },
+                0,
+                new double[] { maxWeightIndex },
                 variance),
             cumulativeDistributionFunction);
     }

@@ -30,7 +30,7 @@ public sealed class MersenneTwister : IGenerator
     private const double IntToDoubleMultiplier = 1.0 / (int.MaxValue + 1.0);
 
     /// <summary>
-    /// The leasst significant r bits.
+    /// The least significant r bits.
     /// </summary>
     private const uint LowerMask = 0x7fffffffU;
 

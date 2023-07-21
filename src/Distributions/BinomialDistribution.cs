@@ -37,12 +37,12 @@ public static class BinomialDistribution
     {
         p = p.Clamp(0, 1);
         return new DistributionProperties(
-                maximum: n,
-                mean: n * p,
-                median: double.NaN,
-                minimum: 0,
-                mode: new[] { Math.Floor(p * (n + 1)) },
-                variance: p * (1 - p) * n);
+            n,
+            n * p,
+            double.NaN,
+            0,
+            new[] { Math.Floor(p * (n + 1)) },
+            p * (1 - p) * n);
     }
 
     /// <summary>
