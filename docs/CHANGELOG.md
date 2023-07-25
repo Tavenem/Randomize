@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2-preview.2
+### Fixed
+- Parse error when there are no parameters
+
 ## 2.2-preview.1
 ### Added
 - Source generated (de)serialization support

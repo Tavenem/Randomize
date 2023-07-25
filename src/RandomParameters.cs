@@ -1757,14 +1757,21 @@ public readonly record struct RandomParameters(
             return false;
         }
         slice = value.Slice(index + 1, nextIndex);
-        if (!double.TryParse(slice, NumberStyles.Float | NumberStyles.AllowThousands, provider, out var lastParamValue))
+        if (slice.IsEmpty)
         {
-            return false;
+            index += nextIndex + 1;
         }
         else
         {
-            parameters.Add(lastParamValue);
-            index += nextIndex + 1;
+            if (!double.TryParse(slice, NumberStyles.Float | NumberStyles.AllowThousands, provider, out var lastParamValue))
+            {
+                return false;
+            }
+            else
+            {
+                parameters.Add(lastParamValue);
+                index += nextIndex + 1;
+            }
         }
 
         var lambda = 1.0;
