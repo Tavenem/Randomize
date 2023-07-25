@@ -103,5 +103,21 @@ public class RandomizerTests
         Assert.AreEqual(
             json,
             JsonSerializer.Serialize(deserialized, RandomizeSourceGenerationContext.Default.RandomParameters));
+
+        value = RandomParameters.NewContinuousUniform(1, 4);
+
+        json = JsonSerializer.Serialize(value);
+        deserialized = JsonSerializer.Deserialize<RandomParameters>(json);
+        Assert.AreEqual(value, deserialized);
+        Assert.AreEqual(json, JsonSerializer.Serialize(deserialized));
+
+        json = JsonSerializer.Serialize(value, RandomizeSourceGenerationContext.Default.RandomParameters);
+        Console.WriteLine();
+        Console.WriteLine(json);
+        deserialized = JsonSerializer.Deserialize(json, RandomizeSourceGenerationContext.Default.RandomParameters);
+        Assert.AreEqual(value, deserialized);
+        Assert.AreEqual(
+            json,
+            JsonSerializer.Serialize(deserialized, RandomizeSourceGenerationContext.Default.RandomParameters));
     }
 }
