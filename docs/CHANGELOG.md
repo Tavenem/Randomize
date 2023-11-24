@@ -1,10 +1,6 @@
 # Changelog
 
-## 2.2-preview.2
-### Fixed
-- Parse error when there are no parameters
-
-## 2.2-preview.1
+## 2.2
 ### Added
 - Source generated (de)serialization support
 ### Changed
@@ -12,8 +8,10 @@
 - Changed `DistributionProperties.Mode` from `double[]` to `IReadOnlyList<double>`
 - Made `RandomParameters` a record
 - Replaced `RandomParameters.Parameters` with strongly-typed properties for each distribution
+### Fixed
+- Parse error when there are no parameters
 ### Updated
-- Update to .NET 8 preview
+- Update to .NET 8
 
 ## 2.1
 ### Updated
