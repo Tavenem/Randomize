@@ -661,7 +661,7 @@ public class Randomizer
     /// <paramref name="list"/>.
     /// </para>
     /// <para>
-    /// To select an index rather than an element, use <see cref="NextIndex{T}(IList{T})"/>.
+    /// To select an index rather than an element, use <see cref="NextIndex{T}(ICollection{T})"/>.
     /// </para>
     /// </summary>
     /// <typeparam name="T">The type of elements in the list.</typeparam>
@@ -672,6 +672,31 @@ public class Randomizer
     /// contains no elements.
     /// </returns>
     public T? Next<T>(IList<T>? list) => (list?.Count ?? 0) == 0 ? default : list![Next(list.Count)];
+
+    /// <summary>
+    /// <para>
+    /// Gets a random element from the given <see cref="ICollection{T}"/>.
+    /// </para>
+    /// <para>
+    /// Each element has an equal chance of being selected. To select elements according to a
+    /// weighted distribution, use <see cref="Next{T}(ICollection{T}, Func{T, double})"/>. Note that if
+    /// you are generating multiple results, it is more efficient to instead call <see
+    /// cref="CategoricalDistributionSamples(int, ICollection{double})"/> with the collection of
+    /// weights as the parameter, and take the results as indexes to selected items in the
+    /// <paramref name="list"/>.
+    /// </para>
+    /// <para>
+    /// To select an index rather than an element, use <see cref="NextIndex{T}(ICollection{T})"/>.
+    /// </para>
+    /// </summary>
+    /// <typeparam name="T">The type of elements in the list.</typeparam>
+    /// <param name="list">An <see cref="ICollection{T}"/>.</param>
+    /// <returns>
+    /// A randomly-selected element from <paramref name="list"/>, or the default value of
+    /// <typeparamref name="T"/> if <paramref name="list"/> is <see langword="null"/> or
+    /// contains no elements.
+    /// </returns>
+    public T? Next<T>(ICollection<T>? list) => (list?.Count ?? 0) == 0 ? default : list!.ElementAt(Next(list!.Count));
 
     /// <summary>
     /// <para>
@@ -689,7 +714,7 @@ public class Randomizer
     /// items in the <paramref name="list"/>.
     /// </para>
     /// <para>
-    /// To select an index rather than an element, use <see cref="NextIndex{T}(IList{T}, Func{T,
+    /// To select an index rather than an element, use <see cref="NextIndex{T}(ICollection{T}, Func{T,
     /// double})"/>.
     /// </para>
     /// </summary>
@@ -706,6 +731,40 @@ public class Randomizer
         => (list?.Count ?? 0) == 0
             ? default
             : list![CategoricalDistributionSample(list.Select(weightFunction).ToList())];
+
+    /// <summary>
+    /// <para>
+    /// Gets a random element from the given <see cref="ICollection{T}"/>, where each element has a
+    /// weighted chance of selected, given by the function provided.
+    /// </para>
+    /// <para>
+    /// To select elements at random from an unweighted collection, use <see
+    /// cref="Next{T}(ICollection{T})"/>.
+    /// </para>
+    /// <para>
+    /// Note that if you are generating multiple results, it is more efficient to instead call
+    /// <see cref="CategoricalDistributionSamples(int, ICollection{double})"/> with the
+    /// collection of weights as the parameter, and take the results as indexes to selected
+    /// items in the <paramref name="list"/>.
+    /// </para>
+    /// <para>
+    /// To select an index rather than an element, use <see cref="NextIndex{T}(ICollection{T}, Func{T,
+    /// double})"/>.
+    /// </para>
+    /// </summary>
+    /// <typeparam name="T">The type of elements in the list.</typeparam>
+    /// <param name="list">An <see cref="ICollection{T}"/>.</param>
+    /// <param name="weightFunction">A function which provides a weight, given an element in the
+    /// <paramref name="list"/>.</param>
+    /// <returns>
+    /// A randomly-selected element from <paramref name="list"/>, or the default value of
+    /// <typeparamref name="T"/> if <paramref name="list"/> is <see langword="null"/> or
+    /// contains no elements.
+    /// </returns>
+    public T? Next<T>(ICollection<T>? list, Func<T, double> weightFunction)
+        => (list?.Count ?? 0) == 0
+            ? default
+            : list!.ElementAt(CategoricalDistributionSample(list!.Select(weightFunction).ToList()));
 
     /// <summary>
     /// <para>
@@ -1078,35 +1137,35 @@ public class Randomizer
 
     /// <summary>
     /// <para>
-    /// Gets a random index to the given <see cref="IList{T}"/>.
+    /// Gets a random index to the given <see cref="ICollection{T}"/>.
     /// </para>
     /// <para>
     /// Each index has an equal chance of being selected. To select an index according to a
-    /// weighted distribution, use <see cref="NextIndex{T}(IList{T}, Func{T, double})"/>. Note
+    /// weighted distribution, use <see cref="NextIndex{T}(ICollection{T}, Func{T, double})"/>. Note
     /// that if you are generating multiple results, it is more efficient to instead call <see
     /// cref="CategoricalDistributionSamples(int, ICollection{double})"/> with the collection of
     /// weights as the parameter.
     /// </para>
     /// <para>
-    /// To select an element rather than an index, use <see cref="Next{T}(IList{T})"/>.
+    /// To select an element rather than an index, use <see cref="Next{T}(ICollection{T})"/>.
     /// </para>
     /// </summary>
     /// <typeparam name="T">The type of elements in the list.</typeparam>
-    /// <param name="list">An <see cref="IList{T}"/>.</param>
+    /// <param name="list">An <see cref="ICollection{T}"/>.</param>
     /// <returns>
     /// A randomly-selected index to <paramref name="list"/>, or -1 if <paramref name="list"/>
     /// is <see langword="null"/> or contains no elements.
     /// </returns>
-    public int NextIndex<T>(IList<T>? list) => (list?.Count ?? 0) == 0 ? -1 : Next(list!.Count);
+    public int NextIndex<T>(ICollection<T>? list) => (list?.Count ?? 0) == 0 ? -1 : Next(list!.Count);
 
     /// <summary>
     /// <para>
-    /// Gets a random index to the given <see cref="IList{T}"/>, where each index has a weighted
+    /// Gets a random index to the given <see cref="ICollection{T}"/>, where each index has a weighted
     /// chance of selected, given by the function provided.
     /// </para>
     /// <para>
     /// To select an index at random from an unweighted collection, use <see
-    /// cref="NextIndex{T}(IList{T})"/>.
+    /// cref="NextIndex{T}(ICollection{T})"/>.
     /// </para>
     /// <para>
     /// Note that if you are generating multiple results, it is more efficient to instead call
@@ -1114,19 +1173,19 @@ public class Randomizer
     /// collection of weights as the parameter.
     /// </para>
     /// <para>
-    /// To select an element rather than an index, use <see cref="Next{T}(IList{T}, Func{T,
+    /// To select an element rather than an index, use <see cref="Next{T}(ICollection{T}, Func{T,
     /// double})"/>.
     /// </para>
     /// </summary>
     /// <typeparam name="T">The type of elements in the list.</typeparam>
-    /// <param name="list">An <see cref="IList{T}"/>.</param>
+    /// <param name="list">An <see cref="ICollection{T}"/>.</param>
     /// <param name="weightFunction">A function which provides a weight, given an element in the
     /// <paramref name="list"/>.</param>
     /// <returns>
     /// A randomly-selected index to <paramref name="list"/>, or -1 if <paramref name="list"/>
     /// is <see langword="null"/> or contains no elements.
     /// </returns>
-    public int NextIndex<T>(IList<T>? list, Func<T, double> weightFunction)
+    public int NextIndex<T>(ICollection<T>? list, Func<T, double> weightFunction)
         => (list?.Count ?? 0) == 0
             ? -1
             : CategoricalDistributionSample(list!.Select(weightFunction).ToList());

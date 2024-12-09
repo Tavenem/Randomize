@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3
+### Changed
+- Replaced `IList` with `ICollection` in some method signatures, and added new `ICollection` overloads to others
+
 ## 2.2
 ### Added
 - Source generated (de)serialization support
